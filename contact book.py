@@ -1,302 +1,267 @@
 import json
-import re
+import random
 from pathlib import Path
 
 
-# contacts.json will be created next to this Python file
-CONTACTS_FILE = Path(__file__).with_name("contacts.json")
+FILE_NAME = "words.json"
 
 
-def load_contacts():
-    """Load contacts from JSON file."""
-    if not CONTACTS_FILE.exists():
+def load_words():
+    """Load saved words from JSON file."""
+
+    if not Path(FILE_NAME).exists():
         return []
 
-    try:
-        with open(CONTACTS_FILE, "r", encoding="utf-8") as file:
-            data = json.load(file)
-
-            if isinstance(data, list):
-                return data
-
-            return []
-
-    except (json.JSONDecodeError, OSError):
-        print("Warning: Could not read contacts file.")
-        return []
+    with open(FILE_NAME, "r", encoding="utf-8") as file:
+        return json.load(file)
 
 
-def save_contacts(contacts):
-    """Save contacts to JSON file."""
-    try:
-        with open(CONTACTS_FILE, "w", encoding="utf-8") as file:
-            json.dump(
-                contacts,
-                file,
-                indent=4,
-                ensure_ascii=False
-            )
 
-    except OSError:
-        print("Error: Could not save contacts.")
+def save_words(words):
+    """Save words into JSON file."""
+
+    with open(FILE_NAME, "w", encoding="utf-8") as file:
+        json.dump(
+            words,
+            file,
+            indent=4,
+            ensure_ascii=False
+        )
 
 
-def show_menu():
+
+def menu():
+
     print("\n" + "=" * 35)
-    print("        CONTACT BOOK")
+    print("     VOCABULARY TRAINER")
     print("=" * 35)
 
-    print("1. Add Contact")
-    print("2. Show Contacts")
-    print("3. Search Contact")
-    print("4. Edit Contact")
-    print("5. Delete Contact")
+    print("1. Add Word")
+    print("2. Show Words")
+    print("3. Search Word")
+    print("4. Delete Word")
+    print("5. Start Quiz")
     print("6. Exit")
 
 
-def get_valid_name():
-    while True:
-        name = input("Enter contact name: ").strip()
 
-        if name:
-            return name
+def add_word(words):
 
-        print("Name cannot be empty.")
+    print("\n--- Add New Word ---")
 
-
-def is_valid_phone(number):
-    """
-    Accept numbers such as:
-    09123456789
-    +989123456789
-    +1 555 123 4567
-    """
-    pattern = r"^\+?[0-9\s\-()]{7,20}$"
-
-    return bool(re.match(pattern, number))
+    word = input("Enter word: ").strip()
+    meaning = input("Enter meaning: ").strip()
+    example = input("Enter example: ").strip()
 
 
-def get_valid_phone():
-    while True:
-        number = input("Enter phone number: ").strip()
+    for item in words:
 
-        if is_valid_phone(number):
-            return number
+        if item["word"].lower() == word.lower():
 
-        print("Please enter a valid phone number.")
-
-
-def add_contact(contacts):
-    print("\n--- Add Contact ---")
-
-    name = get_valid_name()
-    number = get_valid_phone()
-
-    # Prevent duplicate phone numbers
-    for contact in contacts:
-        if contact["number"] == number:
-            print("A contact with this phone number already exists.")
+            print("This word already exists.")
             return
 
-    contact = {
-        "name": name,
-        "number": number
+
+    new_word = {
+
+        "word": word,
+        "meaning": meaning,
+        "example": example
     }
 
-    contacts.append(contact)
-    save_contacts(contacts)
 
-    print(f"{name} added successfully.")
+    words.append(new_word)
+
+    save_words(words)
+
+    print("Word added successfully.")
 
 
-def show_contacts(contacts):
-    print("\n--- Contact List ---")
 
-    if not contacts:
-        print("No contacts found.")
+def show_words(words):
+
+    print("\n--- Word List ---")
+
+
+    if not words:
+
+        print("No words found.")
         return
 
-    sorted_contacts = sorted(
-        contacts,
-        key=lambda contact: contact["name"].lower()
-    )
 
-    print("-" * 45)
-    print(f"{'#':<5}{'Name':<20}{'Phone Number'}")
-    print("-" * 45)
+    for index, item in enumerate(words, start=1):
 
-    for index, contact in enumerate(sorted_contacts, start=1):
-        print(
-            f"{index:<5}"
-            f"{contact['name']:<20}"
-            f"{contact['number']}"
-        )
+        print(f"\n{index}. {item['word']}")
+        print("Meaning:", item["meaning"])
+        print("Example:", item["example"])
 
-    print("-" * 45)
+        print("-" * 25)
 
 
-def search_contacts(contacts):
-    if not contacts:
-        print("No contacts found.")
-        return []
 
-    search_term = input(
-        "Enter a name or phone number to search: "
-    ).strip().lower()
+def search_word(words):
 
-    results = []
-
-    for contact in contacts:
-        if (
-            search_term in contact["name"].lower()
-            or search_term in contact["number"].lower()
-        ):
-            results.append(contact)
-
-    if not results:
-        print("No matching contacts found.")
-        return []
-
-    print("\nSearch Results:")
-
-    for index, contact in enumerate(results, start=1):
-        print(
-            f"{index}. "
-            f"{contact['name']} - "
-            f"{contact['number']}"
-        )
-
-    return results
+    search = input(
+        "Enter word to search: "
+    ).lower()
 
 
-def select_contact(contacts):
-    results = search_contacts(contacts)
+    for item in words:
 
-    if not results:
-        return None
+        if item["word"].lower() == search:
 
-    if len(results) == 1:
-        return results[0]
+            print("\nFound:")
+            print("Word:", item["word"])
+            print("Meaning:", item["meaning"])
+            print("Example:", item["example"])
 
-    while True:
-        try:
-            choice = int(
-                input("Select contact number: ")
-            )
-
-            if 1 <= choice <= len(results):
-                return results[choice - 1]
-
-            print("Invalid selection.")
-
-        except ValueError:
-            print("Please enter a number.")
-
-
-def edit_contact(contacts):
-    print("\n--- Edit Contact ---")
-
-    contact = select_contact(contacts)
-
-    if contact is None:
-        return
-
-    print("\nPress Enter to keep current value.")
-
-    new_name = input(
-        f"Name [{contact['name']}]: "
-    ).strip()
-
-    new_number = input(
-        f"Phone [{contact['number']}]: "
-    ).strip()
-
-    if new_name:
-        contact["name"] = new_name
-
-    if new_number:
-
-        if not is_valid_phone(new_number):
-            print("Invalid phone number.")
             return
 
-        # Check duplicate phone number
-        for existing_contact in contacts:
-            if (
-                existing_contact is not contact
-                and existing_contact["number"] == new_number
-            ):
-                print(
-                    "Another contact already uses "
-                    "this phone number."
-                )
-                return
 
-        contact["number"] = new_number
-
-    save_contacts(contacts)
-
-    print("Contact updated successfully.")
+    print("Word not found.")
 
 
-def delete_contact(contacts):
-    print("\n--- Delete Contact ---")
 
-    contact = select_contact(contacts)
+def delete_word(words):
 
-    if contact is None:
+    word = input(
+        "Enter word to delete: "
+    ).lower()
+
+
+    for item in words:
+
+        if item["word"].lower() == word:
+
+            words.remove(item)
+
+            save_words(words)
+
+            print("Word deleted.")
+
+            return
+
+
+    print("Word not found.")
+
+
+
+def quiz(words):
+
+    if len(words) == 0:
+
+        print("No words available.")
         return
 
-    print(
-        f"\nSelected: "
-        f"{contact['name']} - "
-        f"{contact['number']}"
+
+    amount = min(5, len(words))
+
+
+    questions = random.sample(
+        words,
+        amount
     )
 
-    confirm = input(
-        "Are you sure you want to delete this contact? (y/n): "
-    ).strip().lower()
 
-    if confirm == "y":
-        contacts.remove(contact)
-        save_contacts(contacts)
+    score = 0
 
-        print("Contact deleted successfully.")
 
-    else:
-        print("Deletion cancelled.")
+    print("\n--- Quiz Started ---")
+
+
+    for number, item in enumerate(questions, start=1):
+
+        print(
+            f"\nQuestion {number}"
+        )
+
+
+        print(
+            "Meaning:",
+            item["meaning"]
+        )
+
+
+        answer = input(
+            "Your answer: "
+        )
+
+
+        if answer.lower() == item["word"].lower():
+
+            print("Correct!")
+
+            score += 1
+
+        else:
+
+            print(
+                "Wrong!",
+                "Answer:",
+                item["word"]
+            )
+
+
+    print("\nQuiz Finished")
+    print(
+        f"Score: {score}/{amount}"
+    )
+
 
 
 def main():
-    contacts = load_contacts()
+
+    words = load_words()
+
 
     while True:
-        show_menu()
 
-        choice = input("\nEnter your choice: ").strip()
+        menu()
+
+
+        choice = input(
+            "\nChoose option: "
+        )
+
 
         if choice == "1":
-            add_contact(contacts)
+
+            add_word(words)
+
 
         elif choice == "2":
-            show_contacts(contacts)
+
+            show_words(words)
+
 
         elif choice == "3":
-            search_contacts(contacts)
+
+            search_word(words)
+
 
         elif choice == "4":
-            edit_contact(contacts)
+
+            delete_word(words)
+
 
         elif choice == "5":
-            delete_contact(contacts)
+
+            quiz(words)
+
 
         elif choice == "6":
-            print("\nGoodbye!")
+
+            print("Goodbye!")
+
             break
 
+
         else:
-            print("Invalid choice. Please select 1-6.")
+
+            print("Invalid choice.")
+
 
 
 if __name__ == "__main__":
+
     main()
